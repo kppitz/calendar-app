@@ -1,39 +1,47 @@
-import boto3
+import sys
+sys.path.append('../../')
+from src.wrappers.sqs_wrapper import SqsWrapper as sqs
+from src.wrappers.dynamodb_wrapper import DdbWrapper as ddb
+from src.wrappers.s3_wrapper import s3Wrapper as s3
 
-dynamodb = boto3.resource('dynamodb')
-sqs = boto3.resource('sqs')
+def export_calendar():
+    table = ddb.get_table("calendar-table")
+    bucket = "calendar-cache"
+    bucket_prefix = "kpitz-calendar-app/calendar/"
+    response = ddb.cache_to_s3(table, bucket, bucket_prefix)
+    return response
 
-# # Get the queue
-# queue = sqs.get_queue_by_name(QueueName='calendar-queue')
-
-# # Process messages by printing out body and optional author name
-# for message in queue.receive_messages(MessageAttributeNames=['operation']):
-#     if message.message_attributes is not None:
-#         operation = message.message_attributes.get('operation').get('StringValue')
-
-#     print("operation: ", operation)
-
-#     calendar = dynamodb.Table('calendar-table')
-
-#     appointment = calendar.put_item(
-#         Item={}
-#     )
-
-#     print("Added appointment to calendar")
-
-#     #send message to client via sns
-
-#     # Let the queue know that the message is processed
-#     message.delete()
+def process_status(status):
+    response = "processing"
+    if (status):
+        response = "message received"
+        operation = status['operation']
+        status = status['status']
+        if (operation == "exit"):
+            response = "shutdown"
+        elif (status == "success"):
+            if(operation == "create" or operation == "delete" or operation == "update"):
+                #export updated table to s3
+                try:
+                    export_response = export_calendar()
+                    print("exported calendar to s3")
+                except:
+                    print("failed to export calendar to s3")
+        print(status)
+    return response
 
 def calendar_handler():
-    request = sqs.get_queue("calendar-db-queue")
+    status_queue = sqs.get_queue("calendar-status-queue")
+    status_response = "listening"
 
-    print("connected to queue")
+    print("connected to calendar status queue")
 
-    request_body = sqs.receive_messages(request)
+    while (status_response != "shutdown"):
+        status_body = sqs.receive_messages(status_queue)
 
-    print(request_body)
+        if (status_body):
+            print(status_body)
+            status_response = process_status(status_body)
 
 if __name__ == "__main__":
     calendar_handler()

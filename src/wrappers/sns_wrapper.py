@@ -2,10 +2,11 @@ import boto3, logging
 from botocore.exceptions import ClientError
 
 sns = boto3.resource('sns', region_name="us-east-1")
+sns_client = boto3.client('sns', region_name="us-east-1")
 logger = logging.getLogger(__name__)
 
 
-class SnsService:
+class SnsWrapper:
 
     def create_topic(topic_name):
         topic = sns.create_topic(
@@ -28,7 +29,8 @@ class SnsService:
         response = topic.publish(
             Subject = payload.subject,
             Message = payload.message,
-            MessageGroupId = payload.group_id
+            MessageGroupId = payload.group_id,
+            # MessageStructure = 'json'
         )
         return response
     

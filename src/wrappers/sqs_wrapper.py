@@ -1,9 +1,11 @@
-import boto3, json
+import boto3, json, sys
+sys.path.append('../../')
+from src.definitions.calendar_request import Payload
 
 sqs = boto3.resource('sqs', region_name="us-east-1")
 sqs_client = boto3.client('sqs', region_name="us-east-1")
 
-class SqsService:
+class SqsWrapper:
 
     def create_queue(queue_name):
         queue = sqs.create_queue(QueueName=queue_name)
@@ -41,17 +43,27 @@ class SqsService:
             message_body = json.loads(message.body)
 
             print("received message")
+            #print(message_body['Message'])
 
-            print(message_body['Message'])
+            message_body_dict = json.loads(message_body['Message'])
 
-            return message_body['Message']
-        
-        # Let the queue know that the message is processed
-        #message.delete()
+            message.delete()
+
+            return message_body_dict
 
     def send_message(queue, message):
-        response = queue.send_message(message)
+        response = queue.send_message(MessageBody=message)
         return response
 
     def delete_queue(queue):
         queue.delete()
+
+    def generate_payload(subject, message, group_id):
+        #build calendar request payload
+        payload = Payload(
+            subject = subject,
+            message = json.dumps(message),
+            group_id = group_id
+        )
+        print("payload message: " + payload.message)
+        return payload
