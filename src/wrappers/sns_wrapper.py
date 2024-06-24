@@ -1,5 +1,4 @@
 import boto3, logging
-from botocore.exceptions import ClientError
 
 sns = boto3.resource('sns', region_name="us-east-1")
 sns_client = boto3.client('sns', region_name="us-east-1")

@@ -1,5 +1,6 @@
 import boto3, json, sys
 sys.path.append('../../')
+from src.wrappers.logs_wrapper import LogWrapper as log
 from src.definitions.calendar_request import Payload
 
 sqs = boto3.resource('sqs', region_name="us-east-1")

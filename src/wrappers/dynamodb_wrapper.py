@@ -1,21 +1,18 @@
-import boto3, datetime
-from botocore.exceptions import ClientError
+import boto3, datetime as dt
 
 dynamodb = boto3.resource('dynamodb')
+ddbclient = boto3.client('dynamodb')
 s3b = boto3.resource('s3')
 
 class DdbWrapper:
 
-    def cache_to_s3(table, bucket, bucket_prefix):
-        response = dynamodb.export_table_to_point_in_time(
-            TableArn = table.attributes['TableArn'],
-            ExportTime=datetime(),
+    def export_to_s3(table, bucket):
+        ddbclient.export_table_to_point_in_time(
+            TableArn = table.table_arn,
             S3Bucket = bucket,
-            S3Prefix = bucket_prefix,
             S3SseAlgorithm='AES256',
             ExportFormat = 'DYNAMODB_JSON'
         )
-        return response
 
     def add_item(table, item):
         response = table.put_item(Item=item)
@@ -30,9 +27,10 @@ class DdbWrapper:
         replace_response = table.put_item(Item=item)
         return replace_response
 
-    def get_item(table, key):
+    def get_item(table_name, key):
+        table = dynamodb.Table(table_name)
         item = table.get_item(Key=key)
-        return item
+        return item['Item']
     
     def get_table(table_name):
         table = dynamodb.Table(table_name)

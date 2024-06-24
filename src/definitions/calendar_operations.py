@@ -1,5 +1,3 @@
-from enum import Enum
-
 Operation = {
     "info" : "i",
     "create" : "c",

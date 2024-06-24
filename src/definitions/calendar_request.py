@@ -1,4 +1,3 @@
-
 class Payload():
 
     def __init__(self, subject, message, group_id):

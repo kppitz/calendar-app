@@ -4,7 +4,10 @@ from src.wrappers.sqs_wrapper import SqsWrapper as sqs
 from src.wrappers.sns_wrapper import SnsWrapper as sns
 from src.wrappers.dynamodb_wrapper import DdbWrapper as ddb
 from src.wrappers.s3_wrapper import s3Wrapper as s3
-from src.definitions.calendar_request import Payload
+from src.wrappers.logs_wrapper import LogWrapper as log
+
+log_group_name = '/calendar/appointment-handler'
+log_stream_name = "appt-handler-execution/" + str(dt.datetime.now().timestamp())
 
 def add_appt(appt):
     table = ddb.get_table('calendar-table')
@@ -14,11 +17,12 @@ def add_appt(appt):
         'date' : appt['event_date'],
         'start_time' :  appt['event_start'],
         'end_time' : appt['event_end'],
-        'description' : appt['event_descrip'],
-        'create_time' : str(dt.datetime.now())
+        'description' : appt['event_descrip']
     }
     response = ddb.add_item(table, table_item)
-    s3.update_cache(s3, "create", appt['event_id'])
+    log.add_log(log_group_name, log_stream_name, response)
+    cache_response = s3.cache_event(appt['event_id'])
+    log.add_log(log_group_name, log_stream_name, cache_response)
     return response
 
 def update_appt(appt):
@@ -29,10 +33,10 @@ def update_appt(appt):
         'date' : appt['event_date'],
         'start_time' :  appt['event_start'],
         'end_time' : appt['event_end'],
-        'description' : appt['event_descrip'],
-        'update_time' : str(dt.datetime.now())
+        'description' : appt['event_descrip']
     }
     response = ddb.update_item(table, table_item)
+    log.add_log(log_group_name, log_stream_name, response)
     return response
 
 def replace_appt(appt):
@@ -44,81 +48,104 @@ def replace_appt(appt):
         'start_time' :  appt['event_start'],
         'end_time' : appt['event_end'],
         'description' : appt['event_descrip'],
-        'replace_time' : str(dt.datetime.now())
     }
-    response = ddb.replace_item(table, appt['event_id'], table_item)
-    s3.update_cache(s3, "replace", appt['event_id'], appt['new_event_id'])
+    replace_key = {'event_id': appt['event_id']}
+    response = ddb.replace_item(table, replace_key, table_item)
+    log.add_log(log_group_name, log_stream_name, response)
+    cache_response = s3.delete_from_cache(appt['event_id'])
+    log.add_log(log_group_name, log_stream_name, "Replaced event in db")
+    cache_response = s3.cache_event(appt['new_event_id'])
+    log.add_log(log_group_name, log_stream_name, cache_response)
     return response
 
 def delete_appt(appt):
     table = ddb.get_table('calendar-table')
-    response = ddb.delete_item(table, appt['event_id'])
-    s3.update_cache(s3, "delete", appt['event_id'])
+    delete_key = {'event_id': appt['event_id']}
+    response = ddb.delete_item(table, delete_key)
+    log.add_log(log_group_name, log_stream_name, response)
+    cache_response = s3.delete_from_cache(appt['event_id'])
+    log.add_log(log_group_name, log_stream_name, cache_response)
     return response
 
 def process_request(request):
     status = "processing"
     #add to notification queue
     if(request):
-        print()
-        print("calendar request processed")
-
         operation = request['operation']
-        print(operation)
+        #print("processing calendar " + operation + " operation")
+        log.add_log(log_group_name, log_stream_name, ("processing calendar " + operation + " operation"))
 
         if (operation == "exit"):
-            response = "shutdown"
+            status = "in progress"
+            request_details = "shutdown"
         elif (operation == "create"):
             #add appt to db
+            request_details = request['event_details']
             print()
             try:
-                add_response = add_appt(request['event_details'])
-                print(add_response)
+                add_response = add_appt(request_details)
+                #print(add_response)
                 status = "success"
-            except:
+                log.add_log(log_group_name, log_stream_name, "Added event to db")
+            except Exception as error:
                 status = "failure"
+                log.add_log(log_group_name, log_stream_name, ("Failed to add event to db: " + error))
         elif (operation == "update"):
             #update appt in db
             print()
+            request_details = request['event_details']
             try:
-                update_response = update_appt(request['event_details'])
-                print(update_response)
+                update_response = update_appt(request_details)
+                #print(update_response)
                 status = "success"
-            except:
+                log.add_log(log_group_name, log_stream_name, "Updated event in db")
+            except Exception as error:
                 status = "failure"
-        elif (operation == "repalce"):
+                log.add_log(log_group_name, log_stream_name, ("Failed to update event to db: " + error))
+        elif (operation == "replace"):
             #replace appt in db (delete then put)
+            request_details = request['event_details']
             try:
-                replace_response = replace_appt(request['event_details'])
-                print(replace_response)
+                replace_response = replace_appt(request_details)
+                #print(replace_response)
                 status = "success"
-            except:
+                log.add_log(log_group_name, log_stream_name, "Replaced event in db")
+            except Exception as error:
                 status = "failure"
+                log.add_log(log_group_name, log_stream_name, ("Failed to replace event to db: " + error))
         elif (operation == "delete"):
             #delete appt in db
+            request_details = request['event_details']
             try:
-                delete_response = delete_appt(request['event_details'])
-                print(delete_response)
+                delete_response = delete_appt(request_details)
+                #print(delete_response)
                 status = "success"
-            except:
+                log.add_log(log_group_name, log_stream_name, "Deleted event from db")
+            except Exception as error:
                 status = "failure"
+                log.add_log(log_group_name, log_stream_name, ("Failed to delete event from db: " + error))
         request_status = {
             'operation': operation,
             'status' : status,
-            'request_details': request['event_details']
+            'request_details': request_details
         }
     return request_status
 
 def update_status(status, topic):
         status_payload = sqs.generate_payload("Update Status", status, "status")
         response = sns.publish(topic, status_payload)
+        log.add_log(log_group_name, log_stream_name, response)
         print()
-        print("sent message to status queue")
-        print(response)
+        #print("sent message to status queue")
+        log.add_log(log_group_name, log_stream_name, "sent message to calendar status queue")
+        #print(response)
         return response
 
 
 def appt_handler():
+    #log_group = log.create_log_group(log_group_name)
+    log_stream = log.create_log_stream(log_group_name, log_stream_name)
+
     #setup for status queue
     status_queue = sqs.get_queue("calendar-status-queue")
     calendar_status_topic = sns.create_topic("calendar-status-topic")
@@ -126,19 +153,24 @@ def appt_handler():
     calendar_status_subscription = sns.subscribe_to_topic(calendar_status_topic, status_queue)
 
     request_queue = sqs.get_queue("calendar-request-queue")
-    response = "listening"
+    operation = "listening"
+
+    log.add_log(log_group_name, log_stream_name, "connected to calendar request queue")
 
     print("connected to calendar request queue")
     print()
 
-    while (response != "shutdown"):
+    while (operation != "shutdown"):
         request_body = sqs.receive_messages(request_queue)
 
         if(request_body):
-            print(request_body)
+            #print(request_body)
+            log.add_log(log_group_name, log_stream_name, ("received request: " + str(request_body)))
             request_response = process_request(request_body)
+            log.add_log(log_group_name, log_stream_name, request_response)
             status_response = update_status(request_response, calendar_status_topic)
-        break
+            log.add_log(log_group_name, log_stream_name, status_response)
+            operation = request_response['operation']
 
 
 if __name__ == "__main__":
