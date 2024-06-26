@@ -2,8 +2,8 @@ import boto3, sys, datetime as dt
 sys.path.append('../')
 
 
-client = boto3.client('cloudwatch')
-logs = boto3.client('logs')
+client = boto3.client('cloudwatch', region_name='us-east-1')
+logs = boto3.client('logs', region_name='us-east-1')
 
 class LogWrapper:
 

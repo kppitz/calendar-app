@@ -10,29 +10,33 @@ log_stream_name = "calendar-handler-execution/" + str(dt.datetime.now().timestam
 def export_calendar():
     table = ddb.get_table("calendar-table")
     bucket = "calendar-exports-cache"
-    print("ready to export")
+    #print("ready to export")
     ddb.export_to_s3(table, bucket)
 
-def process_status(status):
+def process_status(calendar_status):
     response = "processing"
-    if (status):
-        response = "message received"
-        operation = status['operation']
-        status = status['status']
+    if (calendar_status):
+        response = "message processed"
+        operation = calendar_status['operation']
+        status = calendar_status['status']
         if (operation == "exit"):
             response = "shutdown"
+            log.add_log(log_group_name, log_stream_name, "processing shutdown")
+            print("shutting down")
         elif (status == "success"):
-            if(operation == "create" or operation == "delete" or operation == "update"):
+            print("calendar operation: " + operation + ", event id: " + str(calendar_status['request_details']['event_id']) + ", status: " + status)
+            log.add_log(log_group_name, log_stream_name, ("calendar operation: " + operation + ", event id: " + str(calendar_status['request_details']['event_id'])) + ", status: " + status)
+            if(operation == "create" or operation == "delete" or operation == "update" or operation == "replace"):
                 #export updated table to s3
-                    # try:
-                    #     export_calendar()
-                    #     #print("exported calendar to s3")
-                    #     log.add_log(log_group_name, log_stream_name, "exported calendar to s3")
-                    # except Exception as error:
-                    #     #print("failed to export calendar to s3")
-                    #     log.add_log(log_group_name, log_stream_name, ("failed to export calendar to s3: " + error))
-                print("exporting to s3 placeholder")
-        #print(status)
+                print()
+                try:
+                    export_calendar()
+                    print("exported calendar to s3")
+                    log.add_log(log_group_name, log_stream_name, "exported calendar to s3")
+                except Exception as error:
+                    print("failed to export calendar to s3")
+                    log.add_log(log_group_name, log_stream_name, ("failed to export calendar to s3: " + error))
+    #print(status)
     return response
 
 def calendar_handler():
@@ -46,11 +50,11 @@ def calendar_handler():
     print("connected to calendar status queue")
     print()
 
-    while (status_response != "shutdown"):
+    while (status_response != "exit"):
         status_body = sqs.receive_messages(status_queue)
 
         if (status_body):
-            print(status_body)
+            #print(status_body)
             log.add_log(log_group_name, log_stream_name, ("received message: " + str(status_body)))
             status_response = process_status(status_body)
             log.add_log(log_group_name, log_stream_name, status_response)

@@ -1,4 +1,4 @@
-import boto3, sys, datetime as dt
+import boto3, sys, datetime as dt, time
 sys.path.append('../')
 from src.wrappers.sqs_wrapper import SqsWrapper as sqs
 from src.wrappers.sns_wrapper import SnsWrapper as sns
@@ -77,6 +77,8 @@ def get_event():
         if s3.event_exists(event_id):
             get_key = {'event_id': event_id}
             event_details = ddb.get_item('calendar-table', get_key)
+            print()
+            print("calendar event details: ")
             print(event_details)
             operation_status = "success"
             log.add_log(log_group_name, log_stream_name, ("get event details: " + str(event_details)))
@@ -117,6 +119,8 @@ def update_event():
             new_event_start = input("Enter updated event start time in hh:mm am/pm format: ")
             new_event_end = input("Enter updated event end time in hh:mm am/pm format: ")
             new_event_descrip = input("Enter updated event description: ")
+            print()
+
             new_event_id = s3.get_event_id(new_event_name, new_event_date)
             event = {
                 'event_id' : event_id,
@@ -249,21 +253,27 @@ def client():
                 event_status = event["operation_status"]
             elif(action == Operation["exit"]):
                 log.add_log(log_group_name, log_stream_name, "exit request")
-                event_msg = {'operation': "exit"}
                 run_type = "exit"
-                event_status = "idle"
+                event = delete_event = {'operation_status': "in progress", 'event_msg':{'operation': "exit"}}
+                event_status = event['operation_status']
             else:
                 print("Action input not recognized. Please enter a valid action.")
 
             if (event_status != "fail"):
                 if(event_status == "in progress"):
                     event_msg = event["event_msg"]
+                    log.add_log(log_group_name, log_stream_name, "calendar request payload message: " + str(event_msg))
                     payload = sqs.generate_payload("Calendar Request", event_msg, "request")
                     #print(payload)
-                    log.add_log(log_group_name, log_stream_name, payload)
+                    log.add_log(log_group_name, log_stream_name, "calendar request payload: " + str(payload))
                     calendar_request_response = sns.publish(calendar_request_topic, payload)
                     #print(calendar_request_response["MessageId"])
-                    log.add_log(log_group_name, log_stream_name, calendar_request_response)
+                    log.add_log(log_group_name, log_stream_name, "sns publish response: " + str(calendar_request_response))
+                    log.add_log(log_group_name, log_stream_name, "published message to calendar request queue")
+
+                    if(run_type == "exit"):
+                        print("shutting down")
+                        time.sleep(5)
                 print()
 
 # Running the client
