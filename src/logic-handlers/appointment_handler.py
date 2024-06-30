@@ -20,9 +20,9 @@ def add_appt(appt):
         'description' : appt['event_descrip']
     }
     response = ddb.add_item(table, table_item)
-    log.add_log(log_group_name, log_stream_name, response)
+    log.add_log(log_group_name, log_stream_name, "Add Item: " + str(response))
     cache_response = s3.cache_event(appt['event_id'])
-    log.add_log(log_group_name, log_stream_name, cache_response)
+    log.add_log(log_group_name, log_stream_name, "Cache add event id: " + str(cache_response))
     return response
 
 def update_appt(appt):
@@ -36,7 +36,7 @@ def update_appt(appt):
         'description' : appt['event_descrip']
     }
     response = ddb.update_item(table, table_item)
-    log.add_log(log_group_name, log_stream_name, response)
+    log.add_log(log_group_name, log_stream_name, "Update Item: " + str(response))
     return response
 
 def replace_appt(appt):
@@ -51,20 +51,19 @@ def replace_appt(appt):
     }
     replace_key = {'event_id': appt['event_id']}
     response = ddb.replace_item(table, replace_key, table_item)
-    log.add_log(log_group_name, log_stream_name, response)
+    log.add_log(log_group_name, log_stream_name, "Replace Item: " + str(response))
     cache_response = s3.delete_from_cache(appt['event_id'])
-    log.add_log(log_group_name, log_stream_name, "Replaced event in db")
     cache_response = s3.cache_event(appt['new_event_id'])
-    log.add_log(log_group_name, log_stream_name, cache_response)
+    log.add_log(log_group_name, log_stream_name, "Cache replace new event id: " + str(cache_response))
     return response
 
 def delete_appt(appt):
     table = ddb.get_table('calendar-table')
     delete_key = {'event_id': appt['event_id']}
     response = ddb.delete_item(table, delete_key)
-    log.add_log(log_group_name, log_stream_name, response)
+    log.add_log(log_group_name, log_stream_name, "Delete Item: " + str(response))
     cache_response = s3.delete_from_cache(appt['event_id'])
-    log.add_log(log_group_name, log_stream_name, cache_response)
+    log.add_log(log_group_name, log_stream_name, "Cache remove event id: " + str(cache_response))
     return response
 
 def process_request(request):
@@ -78,8 +77,11 @@ def process_request(request):
             log.add_log(log_group_name, log_stream_name, "processing shutdown")
             print("shutting down")
         else:
-            print("processing calendar " + operation + " operation for event id: " + request['event_details']['event_id'])
-            log.add_log(log_group_name, log_stream_name, ("processing calendar " + operation + " operation for event id: " + str(request['event_details']['event_id'])))
+            request_id = request['event_details']['event_id']
+            if (operation == "replace"):
+                request_id = request['event_details']['new_event_id']
+            print("processing calendar " + operation + " operation for event id: " + request_id)
+            log.add_log(log_group_name, log_stream_name, ("processing calendar " + operation + " operation for event id: " + request_id))
             if (operation == "create"):
                 #add appt to db
                 request_details = request['event_details']
@@ -134,9 +136,9 @@ def process_request(request):
     return request_status
 
 def update_status(status, topic):
-        log.add_log(log_group_name, log_stream_name, "calendar request payload message: " + str(status))
+        log.add_log(log_group_name, log_stream_name, "calendar status payload message: " + str(status))
         status_payload = sqs.generate_payload("Update Status", status, "status")
-        log.add_log(log_group_name, log_stream_name, "calendar request payload: " + str(status_payload))
+        log.add_log(log_group_name, log_stream_name, "calendar status payload: " + str(status_payload))
         response = sns.publish(topic, status_payload)
         log.add_log(log_group_name, log_stream_name, "sns publish response: " + str(response))
         print()

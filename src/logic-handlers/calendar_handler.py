@@ -24,8 +24,11 @@ def process_status(calendar_status):
             log.add_log(log_group_name, log_stream_name, "processing shutdown")
             print("shutting down")
         elif (status == "success"):
-            print("calendar operation: " + operation + ", event id: " + str(calendar_status['request_details']['event_id']) + ", status: " + status)
-            log.add_log(log_group_name, log_stream_name, ("calendar operation: " + operation + ", event id: " + str(calendar_status['request_details']['event_id'])) + ", status: " + status)
+            status_id = calendar_status['request_details']['event_id']
+            if (operation == "replace"):
+                status_id = calendar_status['request_details']['new_event_id']
+            print("calendar operation: " + operation + ", event id: " + status_id + ", status: " + status)
+            log.add_log(log_group_name, log_stream_name, ("calendar operation: " + operation + ", event id: " + status_id + ", status: " + status))
             if(operation == "create" or operation == "delete" or operation == "update" or operation == "replace"):
                 #export updated table to s3
                 print()

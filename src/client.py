@@ -254,7 +254,7 @@ def client():
             elif(action == Operation["exit"]):
                 log.add_log(log_group_name, log_stream_name, "exit request")
                 run_type = "exit"
-                event = delete_event = {'operation_status': "in progress", 'event_msg':{'operation': "exit"}}
+                event = {'operation_status': "in progress", 'event_msg':{'operation': "exit"}}
                 event_status = event['operation_status']
             else:
                 print("Action input not recognized. Please enter a valid action.")
