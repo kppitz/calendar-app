@@ -1,12 +1,12 @@
-import boto3, sys, datetime as dt, time
-sys.path.append('../')
-from src.wrappers.sqs_wrapper import SqsWrapper as sqs
-from src.wrappers.sns_wrapper import SnsWrapper as sns
-from src.wrappers.s3_wrapper import s3Wrapper as s3
-from src.wrappers.dynamodb_wrapper import DdbWrapper as ddb
-from src.wrappers.logs_wrapper import LogWrapper as log
-from src.definitions.calendar_operations import Operation
-import src.definitions.services as service
+import sys, datetime as dt, time
+#sys.path.append('../')
+from config.wrappers.sqs_wrapper import SqsWrapper as sqs
+from config.wrappers.sns_wrapper import SnsWrapper as sns
+from config.wrappers.s3_wrapper import s3Wrapper as s3
+from config.wrappers.dynamodb_wrapper import DdbWrapper as ddb
+from config.wrappers.logs_wrapper import LogWrapper as log
+from config.definitions.calendar_operations import Operation
+import config.definitions.services as service
 
 log_group_name = '/calendar/client'
 log_stream_name = "client-execution/" + str(dt.datetime.now().timestamp())

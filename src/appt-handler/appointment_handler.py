@@ -1,10 +1,10 @@
 import sys, datetime as dt, time
 sys.path.append('../../')
-from src.wrappers.sqs_wrapper import SqsWrapper as sqs
-from src.wrappers.sns_wrapper import SnsWrapper as sns
-from src.wrappers.dynamodb_wrapper import DdbWrapper as ddb
-from src.wrappers.s3_wrapper import s3Wrapper as s3
-from src.wrappers.logs_wrapper import LogWrapper as log
+from config.wrappers.sqs_wrapper import SqsWrapper as sqs
+from config.wrappers.sns_wrapper import SnsWrapper as sns
+from config.wrappers.dynamodb_wrapper import DdbWrapper as ddb
+from config.wrappers.s3_wrapper import s3Wrapper as s3
+from config.wrappers.logs_wrapper import LogWrapper as log
 
 log_group_name = '/calendar/appointment-handler'
 log_stream_name = "appt-handler-execution/" + str(dt.datetime.now().timestamp())
