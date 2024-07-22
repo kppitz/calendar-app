@@ -42,14 +42,30 @@ class SqsWrapper:
 
             message_body = json.loads(message.body)
 
-            #print("received message")
-            #print(message_body['Message'])
+            print("received message")
+            print(message_body['Records'][0]["s3"]["object"]["key"])
 
             message_body_dict = json.loads(message_body['Message'])
 
-            message.delete()
+            #message.delete()
 
             return message_body_dict
+
+    def receive_event_notifications(queue):
+        for notif in queue.receive_messages(WaitTimeSeconds=5, MaxNumberOfMessages=1):
+
+            notif_body = json.loads(notif.body)
+
+            # print("received notification")
+            # print(notif_body['Records'][0])
+            # print()
+            # print(notif_body['Records'][0]
+
+            notif_body_dict = notif_body['Records'][0]
+
+            notif.delete()
+
+            return notif_body_dict
 
     def send_message(queue, message):
         response = queue.send_message(MessageBody=message)

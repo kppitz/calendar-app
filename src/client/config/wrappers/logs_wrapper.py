@@ -1,5 +1,5 @@
 import boto3, sys, datetime as dt
-#sys.path.append('../')
+sys.path.append('../')
 
 
 client = boto3.client('cloudwatch', region_name='us-east-1')

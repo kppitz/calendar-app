@@ -11,23 +11,25 @@ import config.definitions.services as service
 log_group_name = '/calendar/client'
 log_stream_name = "client-execution/" + str(dt.datetime.now().timestamp())
 
-def create_event():
+def create_event(event_contents):
     #create event parameters here
     print("Create calendar event")
-    print()
-    event_name = input("Enter event name: ")
-    event_date = input("Enter event date in mm-dd-yyyy format: ")
-    event_start = input("Enter event start time in hh:mm am/pm format: ")
-    event_end = input("Enter event end time in hh:mm am/pm format: ")
-    event_descrip = input("Enter event description: ")
-    print()
+    # print()
+    # event_name = input("Enter event name: ")
+    # event_date = input("Enter event date in mm-dd-yyyy format: ")
+    # event_start = input("Enter event start time in hh:mm am/pm format: ")
+    # event_end = input("Enter event end time in hh:mm am/pm format: ")
+    # event_descrip = input("Enter event description: ")
+    # print()
     operation = "create"
+    event_name = event_contents["event_name"]
+    event_date = event_contents["event_date"]
     event = {
         'event_name' : event_name,
         'event_date' : event_date,
-        'event_start' :  event_start,
-        'event_end' : event_end,
-        'event_descrip' : event_descrip,
+        'event_start' :  event_contents["event_start"],
+        'event_end' : event_contents["event_end"],
+        'event_descrip' : event_contents["event_descrip"],
         'create_time' : str(dt.datetime.now())
     }
 
@@ -54,16 +56,18 @@ def create_event():
     create_event = {'operation_status': operation_status, "event_msg":{'operation': operation, 'event_details': event}}
     return create_event
 
-def get_event():
+def get_event(event_contents):
     #get event parameters here
     print("Get calendar event details")
     print()
-    event_name = input("Enter event name: ")
-    event_date = input("Enter event date in mm-dd-yyyy format: ")
+    # event_name = input("Enter event name: ")
+    # event_date = input("Enter event date in mm-dd-yyyy format: ")
     operation = "get"
+    event_name = event_contents["event_name"]
+    event_date = event_contents["event_date"]
     event = {
-        'event_name': event_name,
-        'event_date': event_date
+        'event_name' : event_name,
+        'event_date' : event_date
     }
 
     log.add_log(log_group_name, log_stream_name, ("get request input: " + str(event)))
@@ -90,14 +94,16 @@ def get_event():
         get_event = {'operation_status': operation_status, 'event_msg':{'operation':operation}}
         return get_event
 
-def update_event():
+def update_event(event_contents):
     #update event parameters here
     print("Update calendar event")
-    print()
-    event_name = input("Enter event name: ")
-    event_date = input("Enter event date in mm-dd-yyyy format: ")
+    # print()
+    # event_name = input("Enter event name: ")
+    # event_date = input("Enter event date in mm-dd-yyyy format: ")
     print()
     operation = "update"
+    event_name = event_contents["event_name"]
+    event_date = event_contents["event_date"]
     event = {
         'event_name': event_name,
         'event_date': event_date
@@ -114,21 +120,24 @@ def update_event():
         event_id = s3.get_event_id(event_name, event_date)
         print
         if s3.event_exists(event_id):
-            new_event_name = input("Enter updated event name: ")
-            new_event_date = input("Enter updated event date in mm-dd-yyyy format: ")
-            new_event_start = input("Enter updated event start time in hh:mm am/pm format: ")
-            new_event_end = input("Enter updated event end time in hh:mm am/pm format: ")
-            new_event_descrip = input("Enter updated event description: ")
-            print()
+            # new_event_name = input("Enter updated event name: ")
+            # new_event_date = input("Enter updated event date in mm-dd-yyyy format: ")
+            # new_event_start = input("Enter updated event start time in hh:mm am/pm format: ")
+            # new_event_end = input("Enter updated event end time in hh:mm am/pm format: ")
+            # new_event_descrip = input("Enter updated event description: ")
+            # print()
+
+            new_event_name = event_contents["new_event_name"]
+            new_event_date = event_contents["new_event_date"]
 
             new_event_id = s3.get_event_id(new_event_name, new_event_date)
             event = {
                 'event_id' : event_id,
                 'event_name' : new_event_name,
                 'event_date' : new_event_date,
-                'event_start' :  new_event_start,
-                'event_end' : new_event_end,
-                'event_descrip' : new_event_descrip,
+                'event_start' :  event_contents["new_event_start"],
+                'event_end' : event_contents["new_event_end"],
+                'event_descrip' : event_contents["new_event_descrip"],
                 'update_time' : str(dt.datetime.now())
             }
             #validate event input
@@ -161,14 +170,16 @@ def update_event():
     
     return update_event
 
-def delete_event():
+def delete_event(event_contents):
     #delete event parameters here
     print("Delete calendar event")
-    print()
-    event_name = input("Enter event event name: ")
-    event_date = input("Enter event date in mm-dd-yyyy format: ")
+    # print()
+    # event_name = input("Enter event event name: ")
+    # event_date = input("Enter event date in mm-dd-yyyy format: ")
     print()
     operation = "delete"
+    event_name = event_contents["event_name"]
+    event_date = event_contents["event_date"]
     event = {
         'event_name': event_name,
         'event_date': event_date,
@@ -197,11 +208,46 @@ def delete_event():
     delete_event = {'operation_status': operation_status, 'event_msg':{'operation': operation, 'event_details': event}}
     return delete_event
 
+def process_client_request(client_request_file):
+    #processes s3 bucket file with client response
+    file_name = client_request_file["s3"]["object"]["key"]
+    file_contents = s3.read_file(file_name)
+    print(file_contents)
+
+    action = file_contents["request"]
+    event_status = "idle"
+
+    #routes to correct event request validation
+    if (action == "create"):
+        log.add_log(log_group_name, log_stream_name, "create event request")
+        event = create_event(file_contents)
+        event_status = event["operation_status"]
+    elif (action == "get"):
+        log.add_log(log_group_name, log_stream_name, "get event request")
+        event = get_event(file_contents)
+        event_status = event["operation_status"]
+    elif(action == "update"):
+        log.add_log(log_group_name, log_stream_name, "update event request")
+        event = update_event(file_contents)
+        event_status = event["operation_status"]
+    elif(action == "delete"):
+        log.add_log(log_group_name, log_stream_name, "delete event request")
+        event = delete_event(file_contents)
+        event_status = event["operation_status"]
+    elif(action == "exit"):
+        log.add_log(log_group_name, log_stream_name, "exit request")
+        run_type = "exit"
+        event = {'operation_status': "in progress", 'event_msg':{'operation': "exit"}}
+        event_status = event['operation_status']
+    else:
+        print("Action input not recognized. Please enter a valid action.")
+
+    return event
+
 def client():
     run_type = "start"
     event_status = "start"
 
-    #log_group = log.create_log_group(log_group_name)
     log_stream = log.create_log_stream(log_group_name, log_stream_name)
 
     #run setup
@@ -212,62 +258,33 @@ def client():
 
     log.add_log(log_group_name, log_stream_name, "Client executable started")
 
-    print("Welcome to your personal calendar!")
+    client_queue = sqs.get_queue("client-calendar-request-queue")
+    client_response = "listening"
+    log.add_log(log_group_name, log_stream_name, "connected to client calendar request queue")
 
-    while (run_type != "exit"):
-        print()
-        print("Enter info (i) for menu of calendar action, or enter your request action now.")
-        action = input("request: ")
-        if (action not in Operation.values()):
-            print("Action input not recognized. Please enter a valid action.")
-        else:
-            if(action == Operation["info"]):
-                #show menu of operations
-                print("Calendar Actions")
-                print("info (i): lists menu of calendar actions")
-                print()
-                print("create (c): create an event to add to calendar")
-                print("get/search (g): get calendar event details")
-                print("update/replace (u): update an existing calendar event")
-                print("delete (d): delete an existing calendar event")
-                print("exit (e): leave the calendar application")
-                print()
+    #poll s3 bucket for new request file
+    while (client_response != "exit"):
+        print(client_response)
+        client_request_event = sqs.receive_event_notifications(client_queue)
 
-                event_status = "idle"
+        if (client_request_event):
+            #print(status_body)
+            log.add_log(log_group_name, log_stream_name, ("received request: " + str(client_request_event)))
+            client_request_response = process_client_request(client_request_event)
+            print(client_request_response)
+            log.add_log(log_group_name, log_stream_name, client_request_response)
 
-            elif (action == Operation["create"]):
-                log.add_log(log_group_name, log_stream_name, "create event request")
-                event = create_event()
-                event_status = event["operation_status"]
-            elif (action == Operation["get"]):
-                log.add_log(log_group_name, log_stream_name, "get event request")
-                event = get_event()
-                event_status = event["operation_status"]
-            elif(action == Operation["update"]):
-                log.add_log(log_group_name, log_stream_name, "update event request")
-                event = update_event()
-                event_status = event["operation_status"]
-            elif(action == Operation["delete"]):
-                log.add_log(log_group_name, log_stream_name, "delete event request")
-                event = delete_event()
-                event_status = event["operation_status"]
-            elif(action == Operation["exit"]):
-                log.add_log(log_group_name, log_stream_name, "exit request")
-                run_type = "exit"
-                event = {'operation_status': "in progress", 'event_msg':{'operation': "exit"}}
-                event_status = event['operation_status']
-            else:
-                print("Action input not recognized. Please enter a valid action.")
+            event_status = client_request_response["operation_status"]
 
             if (event_status != "fail"):
                 if(event_status == "in progress"):
-                    event_msg = event["event_msg"]
+                    event_msg = client_request_response["event_msg"]
                     log.add_log(log_group_name, log_stream_name, "calendar request payload message: " + str(event_msg))
                     payload = sqs.generate_payload("Calendar Request", event_msg, "request")
-                    #print(payload)
+                    print(payload)
                     log.add_log(log_group_name, log_stream_name, "calendar request payload: " + str(payload))
                     calendar_request_response = sns.publish(calendar_request_topic, payload)
-                    #print(calendar_request_response["MessageId"])
+                    print(calendar_request_response["MessageId"])
                     log.add_log(log_group_name, log_stream_name, "sns publish response: " + str(calendar_request_response))
                     log.add_log(log_group_name, log_stream_name, "published message to calendar request queue")
 
@@ -275,6 +292,70 @@ def client():
                         print("shutting down")
                         time.sleep(5)
                 print()
+
+    #print("Welcome to your personal calendar!")
+
+    # while (run_type != "exit"):
+    #     print()
+    #     print("Enter info (i) for menu of calendar action, or enter your request action now.")
+    #     action = input("request: ")
+    #     if (action not in Operation.values()):
+    #         print("Action input not recognized. Please enter a valid action.")
+    #     else:
+    #         if(action == Operation["info"]):
+    #             #show menu of operations
+    #             print("Calendar Actions")
+    #             print("info (i): lists menu of calendar actions")
+    #             print()
+    #             print("create (c): create an event to add to calendar")
+    #             print("get/search (g): get calendar event details")
+    #             print("update/replace (u): update an existing calendar event")
+    #             print("delete (d): delete an existing calendar event")
+    #             print("exit (e): leave the calendar application")
+    #             print()
+
+    #             event_status = "idle"
+
+    #         elif (action == Operation["create"]):
+    #             log.add_log(log_group_name, log_stream_name, "create event request")
+    #             event = create_event()
+    #             event_status = event["operation_status"]
+    #         elif (action == Operation["get"]):
+    #             log.add_log(log_group_name, log_stream_name, "get event request")
+    #             event = get_event()
+    #             event_status = event["operation_status"]
+    #         elif(action == Operation["update"]):
+    #             log.add_log(log_group_name, log_stream_name, "update event request")
+    #             event = update_event()
+    #             event_status = event["operation_status"]
+    #         elif(action == Operation["delete"]):
+    #             log.add_log(log_group_name, log_stream_name, "delete event request")
+    #             event = delete_event()
+    #             event_status = event["operation_status"]
+    #         elif(action == Operation["exit"]):
+    #             log.add_log(log_group_name, log_stream_name, "exit request")
+    #             run_type = "exit"
+    #             event = {'operation_status': "in progress", 'event_msg':{'operation': "exit"}}
+    #             event_status = event['operation_status']
+    #         else:
+    #             print("Action input not recognized. Please enter a valid action.")
+
+    #         if (event_status != "fail"):
+    #             if(event_status == "in progress"):
+    #                 event_msg = event["event_msg"]
+    #                 log.add_log(log_group_name, log_stream_name, "calendar request payload message: " + str(event_msg))
+    #                 payload = sqs.generate_payload("Calendar Request", event_msg, "request")
+    #                 #print(payload)
+    #                 log.add_log(log_group_name, log_stream_name, "calendar request payload: " + str(payload))
+    #                 calendar_request_response = sns.publish(calendar_request_topic, payload)
+    #                 #print(calendar_request_response["MessageId"])
+    #                 log.add_log(log_group_name, log_stream_name, "sns publish response: " + str(calendar_request_response))
+    #                 log.add_log(log_group_name, log_stream_name, "published message to calendar request queue")
+
+    #                 if(run_type == "exit"):
+    #                     print("shutting down")
+    #                     time.sleep(5)
+    #             print()
 
 # Running the client
 if __name__ == "__main__":
