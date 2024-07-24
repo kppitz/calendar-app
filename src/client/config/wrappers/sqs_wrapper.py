@@ -47,7 +47,7 @@ class SqsWrapper:
 
             message_body_dict = json.loads(message_body['Message'])
 
-            #message.delete()
+            message.delete()
 
             return message_body_dict
 
@@ -55,11 +55,6 @@ class SqsWrapper:
         for notif in queue.receive_messages(WaitTimeSeconds=5, MaxNumberOfMessages=1):
 
             notif_body = json.loads(notif.body)
-
-            # print("received notification")
-            # print(notif_body['Records'][0])
-            # print()
-            # print(notif_body['Records'][0]
 
             notif_body_dict = notif_body['Records'][0]
 

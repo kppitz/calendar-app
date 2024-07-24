@@ -1,0 +1,8 @@
+{
+    "operation": "create",
+    "event_name" : "new event",
+    "event_date" : "07-25-2024",
+    "event_start" :  "3:00pm",
+    "event_end" : "4:00pm",
+    "event_descrip" : "new event input"
+}

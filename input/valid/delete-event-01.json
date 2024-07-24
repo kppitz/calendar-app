@@ -1,0 +1,5 @@
+{
+    "operation": "delete",
+    "event_name" : "test event",
+    "event_date" : "07-20-2024"
+}

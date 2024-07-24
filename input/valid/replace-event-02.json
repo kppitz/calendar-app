@@ -1,0 +1,10 @@
+{
+    "operation": "update",
+    "event_name" : "new event",
+    "event_date" : "07-25-2024",
+    "new_event_name" : "updated event",
+    "new_event_date" : "07-24-2024",
+    "new_event_start" :  "3:00pm",
+    "new_event_end" : "4:00pm",
+    "new_event_descrip" : "updated event name and date"
+}
