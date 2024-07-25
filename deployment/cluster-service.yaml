@@ -41,8 +41,6 @@ spec:
       containers:
       - name: appt-handler
         image: 381492094663.dkr.ecr.us-east-1.amazonaws.com/calendar-app:appt-handler
-        ports:
-        - containerPort: 80
       serviceAccountName: calendar-sa
 ---
 apiVersion: apps/v1
@@ -65,8 +63,6 @@ spec:
       containers:
       - name: calendar-handler
         image: 381492094663.dkr.ecr.us-east-1.amazonaws.com/calendar-app:calendar-handler
-        ports:
-        - containerPort: 80
       serviceAccountName: calendar-sa
 ---
 apiVersion: apps/v1
@@ -89,6 +85,4 @@ spec:
       containers:
       - name: client
         image: 381492094663.dkr.ecr.us-east-1.amazonaws.com/calendar-app:client
-        ports:
-        - containerPort: 80
       serviceAccountName: calendar-sa
