@@ -33,7 +33,7 @@ def process_status(calendar_status):
                 #export updated table to s3
                 print()
                 try:
-                    #export_calendar()
+                    export_calendar()
                     print("exported calendar to s3")
                     log.add_log(log_group_name, log_stream_name, "exported calendar to s3")
                 except Exception as error:
