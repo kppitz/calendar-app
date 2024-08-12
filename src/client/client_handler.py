@@ -9,8 +9,8 @@ from config.wrappers.logs_wrapper import LogWrapper as log
 from config.definitions.calendar_operations import Operation
 import config.definitions.services as service
 
-log_group_name = '/calendar/client'
-log_stream_name = "client-execution/" + str(dt.datetime.now().timestamp())
+log_group_name = '/calendar/client-handler'
+log_stream_name = "client-handler-execution/" + str(dt.datetime.now().timestamp())
 
 import json
 
