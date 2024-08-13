@@ -10,17 +10,17 @@ log_stream_name = "calendar-handler-execution/" + str(dt.datetime.now().timestam
 
 def calendar_handler(event, context):
     #log_group = log.create_log_group(log_group_name)
-    log_stream = log.create_log_stream(log_group_name, log_stream_name)
-    log.add_log(log_group_name, log_stream_name, ("incoming calendar-handler event: "+ event))
+    #log_stream = log.create_log_stream(log_group_name, log_stream_name)
+    #log.add_log(log_group_name, log_stream_name, ("incoming calendar-handler event: "+ event))
 
     calendar_status = calendar.process_status(event)
 
-    log.add_log(log_group_name, log_stream_name, ("calendar status: "+calendar_status) )
+    #log.add_log(log_group_name, log_stream_name, ("calendar status: "+calendar_status) )
     # status_queue = sqs.get_queue("calendar-status-queue")
     # status_response = "listening"
 
-    # log.add_log(log_group_name, log_stream_name, "connected to calendar status queue")
-    # print("connected to calendar status queue")
+    # #log.add_log(log_group_name, log_stream_name, "connected to calendar status queue")
+    # logger.info("connected to calendar status queue")
     # print()
 
     # while (status_response != "exit"):
@@ -28,6 +28,6 @@ def calendar_handler(event, context):
 
     #     if (status_body):
     #         #print(status_body)
-    #         log.add_log(log_group_name, log_stream_name, ("received message: " + str(status_body)))
+    #         #log.add_log(log_group_name, log_stream_name, ("received message: " + str(status_body)))
     #         status_response = calendar.process_status(status_body)
-    #         log.add_log(log_group_name, log_stream_name, status_response)
+    #         #log.add_log(log_group_name, log_stream_name, status_response)

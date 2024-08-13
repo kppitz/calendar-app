@@ -1,4 +1,4 @@
-import sys, datetime as dt, time, json
+import sys, datetime as dt, time, json, logging
 #sys.path.append('../')
 from config.definitions.client_service import ClientService as client
 from config.wrappers.sqs_wrapper import SqsWrapper as sqs
@@ -11,15 +11,17 @@ import config.definitions.services as service
 
 log_group_name = '/calendar/client-handler'
 log_stream_name = "client-handler-execution/" + str(dt.datetime.now().timestamp())
+logger = logging.getLogger()
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
-import json
 
 def client_handler(event, context):
     # TODO implement
     run_type = "start"
     event_status = "start"
 
-    log_stream = log.create_log_stream(log_group_name, log_stream_name)
+    #log_stream = log.create_log_stream(log_group_name, log_stream_name)
 
     #run setup
     calendar_request_queue = sqs.get_queue("calendar-request-queue")
@@ -27,11 +29,11 @@ def client_handler(event, context):
     sqs.add_access_policy(calendar_request_queue, calendar_request_topic)
     calendar_request_subscription = sns.subscribe_to_topic(calendar_request_topic, calendar_request_queue)
 
-    log.add_log(log_group_name, log_stream_name, "Client executable started")
+    # log.add_log(log_group_name, log_stream_name, "Client executable started")
+    logger.info("incoming client-handler event: " + str(event))
+    logger.info("incoming s3 file: ", event['Records'][0]['s3'])
+    
+    client_request_event = client.process_client_request(event['Records'][0]['s3'])
 
-    client_request_event = client.process_client_request(event)
-
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Hello from Lambda!')
-    }
+    logger.info("client request event: " + str(client_request_event))
+    return client_request_event

@@ -42,7 +42,7 @@ class SqsWrapper:
 
             message_body = json.loads(message.body)
 
-            #print("received message")
+            #logger.info("received message")
             #print(message_body['Message'])
 
             message_body_dict = json.loads(message_body['Message'])
@@ -65,5 +65,5 @@ class SqsWrapper:
             message = json.dumps(message),
             group_id = group_id
         )
-        #print("payload message: " + payload.message)
+        #logger.info("payload message: " + payload.message)
         return payload

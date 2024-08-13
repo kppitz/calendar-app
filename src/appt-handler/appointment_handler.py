@@ -12,7 +12,7 @@ log_stream_name = "appt-handler-execution/" + str(dt.datetime.now().timestamp())
 
 def appt_handler(event, context):
     #log_group = log.create_log_group(log_group_name)
-    log_stream = log.create_log_stream(log_group_name, log_stream_name)
+    #log_stream = log.create_log_stream(log_group_name, log_stream_name)
 
     #setup for status queue
     status_queue = sqs.get_queue("calendar-status-queue")
@@ -23,15 +23,15 @@ def appt_handler(event, context):
     request_queue = sqs.get_queue("calendar-request-queue")
     operation = "listening"
 
-    log.add_log(log_group_name, log_stream_name, ("incoming appointment-handler event: " + event))
+    #log.add_log(log_group_name, log_stream_name, ("incoming appointment-handler event: " + event))
     request_response = appt.process_request(event)
     status_response = appt.update_status(request_response, calendar_status_topic)
 
-    log.add_log(log_group_name, log_stream_name, ("appt update status response: " + status_response))
+    #log.add_log(log_group_name, log_stream_name, ("appt update status response: " + status_response))
 
-    # log.add_log(log_group_name, log_stream_name, "connected to calendar request queue")
+    # #log.add_log(log_group_name, log_stream_name, "connected to calendar request queue")
 
-    # print("connected to calendar request queue")
+    # logger.info("connected to calendar request queue")
     # print()
 
     # while (operation != "exit"):
@@ -39,7 +39,7 @@ def appt_handler(event, context):
 
     #     if(request_body):
     #         #print(request_body)
-    #         log.add_log(log_group_name, log_stream_name, ("received request: " + str(request_body)))
+    #         #log.add_log(log_group_name, log_stream_name, ("received request: " + str(request_body)))
     #         request_response = process_request(request_body)
     #         status_response = update_status(request_response, calendar_status_topic)
     #         operation = request_response['operation']

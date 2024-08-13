@@ -12,7 +12,7 @@ class CalendarService:
     def export_calendar():
         table = ddb.get_table("calendar-table")
         bucket = "calendar-exports-cache"
-        #print("ready to export")
+        #logger.info("ready to export")
         ddb.export_to_s3(table, bucket)
 
     def process_status(calendar_status):
@@ -23,23 +23,23 @@ class CalendarService:
             status = calendar_status['status']
         if (operation == "exit"):
             response = "shutdown"
-            log.add_log(log_group_name, log_stream_name, "processing shutdown")
-            print("shutting down")
+            #log.add_log(log_group_name, log_stream_name, "processing shutdown")
+            logger.info("shutting down")
         elif (status == "success"):
             status_id = calendar_status['request_details']['event_id']
             if (operation == "replace"):
                 status_id = calendar_status['request_details']['new_event_id']
-            print("calendar operation: " + operation + ", event id: " + status_id + ", status: " + status)
-            log.add_log(log_group_name, log_stream_name, ("calendar operation: " + operation + ", event id: " + status_id + ", status: " + status))
+            logger.info("calendar operation: " + operation + ", event id: " + status_id + ", status: " + status)
+            #log.add_log(log_group_name, log_stream_name, ("calendar operation: " + operation + ", event id: " + status_id + ", status: " + status))
             if(operation == "create" or operation == "delete" or operation == "update" or operation == "replace"):
                 #export updated table to s3
                 print()
                 try:
                     CalendarService.export_calendar()
-                    print("exported calendar to s3")
-                    log.add_log(log_group_name, log_stream_name, "exported calendar to s3")
+                    logger.info("exported calendar to s3")
+                    #log.add_log(log_group_name, log_stream_name, "exported calendar to s3")
                 except Exception as error:
-                    print("failed to export calendar to s3")
-                    log.add_log(log_group_name, log_stream_name, ("failed to export calendar to s3: " + error))
+                    logger.info("failed to export calendar to s3")
+                    #log.add_log(log_group_name, log_stream_name, ("failed to export calendar to s3: " + error))
         #print(status)
         return response
