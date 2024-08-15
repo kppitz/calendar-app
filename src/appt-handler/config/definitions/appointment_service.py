@@ -1,4 +1,4 @@
-import sys, datetime as dt, time
+import sys, datetime as dt, time, logging
 sys.path.append('../../')
 from config.wrappers.sqs_wrapper import SqsWrapper as sqs
 from config.wrappers.sns_wrapper import SnsWrapper as sns
@@ -8,6 +8,9 @@ from config.wrappers.logs_wrapper import LogWrapper as log
 
 log_group_name = '/calendar/appointment-handler'
 log_stream_name = "appt-handler-execution/" + str(dt.datetime.now().timestamp())
+logger = logging.getLogger()
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 class AppointmentService:
 
@@ -23,8 +26,10 @@ class AppointmentService:
         }
         response = ddb.add_item(table, table_item)
         #log.add_log(log_group_name, log_stream_name, "Add Item: " + str(response))
+        logger.info("Add Item: " + str(response))
         cache_response = s3.cache_event(appt['event_id'])
         #log.add_log(log_group_name, log_stream_name, "Cache add event id: " + str(cache_response))
+        logger.info("Cache add event id: " + str(cache_response))
         return response
 
     def update_appt(appt):
@@ -39,6 +44,7 @@ class AppointmentService:
         }
         response = ddb.update_item(table, table_item)
         #log.add_log(log_group_name, log_stream_name, "Update Item: " + str(response))
+        logger.info("Update Item: " + str(response))
         return response
 
     def replace_appt(appt):
@@ -54,9 +60,11 @@ class AppointmentService:
         replace_key = {'event_id': appt['event_id']}
         response = ddb.replace_item(table, replace_key, table_item)
         #log.add_log(log_group_name, log_stream_name, "Replace Item: " + str(response))
+        logger.info("Replace Item: " + str(response))
         cache_response = s3.delete_from_cache(appt['event_id'])
         cache_response = s3.cache_event(appt['new_event_id'])
         #log.add_log(log_group_name, log_stream_name, "Cache replace new event id: " + str(cache_response))
+        logger.info("Cache replace new event id: " + str(cache_response))
         return response
 
     def delete_appt(appt):
@@ -64,8 +72,10 @@ class AppointmentService:
         delete_key = {'event_id': appt['event_id']}
         response = ddb.delete_item(table, delete_key)
         #log.add_log(log_group_name, log_stream_name, "Delete Item: " + str(response))
+        logger.info("Delete Item: " + str(response))
         cache_response = s3.delete_from_cache(appt['event_id'])
         #log.add_log(log_group_name, log_stream_name, "Cache remove event id: " + str(cache_response))
+        logger.info("Cache remove event id: " + str(cache_response))
         return response
 
     def process_request(request):
@@ -93,9 +103,11 @@ class AppointmentService:
                         #print(add_response)
                         status = "success"
                         #log.add_log(log_group_name, log_stream_name, "Added event to db")
+                        logger.info("Added event to db")
                     except Exception as error:
                         status = "failure"
                         #log.add_log(log_group_name, log_stream_name, ("Failed to add event to db: " + error))
+                        logger.error("Failed to add event to db: " + error)
                 elif (operation == "update"):
                     #update appt in db
                     print()
@@ -105,9 +117,11 @@ class AppointmentService:
                         #print(update_response)
                         status = "success"
                         #log.add_log(log_group_name, log_stream_name, "Updated event in db")
+                        logger.info("Updated event in db")
                     except Exception as error:
                         status = "failure"
                         #log.add_log(log_group_name, log_stream_name, ("Failed to update event to db: " + error))
+                        logger.error("Failed to update event to db: " + error)
                 elif (operation == "replace"):
                     #replace appt in db (delete then put)
                     request_details = request['event_details']
@@ -116,9 +130,11 @@ class AppointmentService:
                         #print(replace_response)
                         status = "success"
                         #log.add_log(log_group_name, log_stream_name, "Replaced event in db")
+                        logger.info("Replaced event in db")
                     except Exception as error:
                         status = "failure"
                         #log.add_log(log_group_name, log_stream_name, ("Failed to replace event to db: " + error))
+                        logger.error("Failed to replace event to db: " + error)
                 elif (operation == "delete"):
                     #delete appt in db
                     request_details = request['event_details']
@@ -127,9 +143,11 @@ class AppointmentService:
                         #print(delete_response)
                         status = "success"
                         #log.add_log(log_group_name, log_stream_name, "Deleted event from db")
+                        logger.info("Deleted event from db")
                     except Exception as error:
                         status = "failure"
                         #log.add_log(log_group_name, log_stream_name, ("Failed to delete event from db: " + error))
+                        logger.error("Failed to delete event from db: " + error)
             request_status = {
                 'operation': operation,
                 'status' : status,
@@ -139,12 +157,14 @@ class AppointmentService:
 
     def update_status(status, topic):
         #log.add_log(log_group_name, log_stream_name, "calendar status payload message: " + str(status))
+        logger.info("calendar status payload message: " + str(status))
         status_payload = sqs.generate_payload("Update Status", status, "status")
         #log.add_log(log_group_name, log_stream_name, "calendar status payload: " + str(status_payload))
+        logger.info("calendar status payload: " + str(status_payload))
         response = sns.publish(topic, status_payload)
         #log.add_log(log_group_name, log_stream_name, "sns publish response: " + str(response))
-        print()
-        #logger.info("sent message to status queue")
+        logger.info("sns publish response: " + str(response))
+        logger.info("sent message to status queue")
         #log.add_log(log_group_name, log_stream_name, "sent message to calendar status queue")
         #print(response)
         return response

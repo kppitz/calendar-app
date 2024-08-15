@@ -50,6 +50,10 @@ class SqsWrapper:
             message.delete()
 
             return message_body_dict
+        
+    def delete_message(queue_url, receipt_handle):
+        response = sqs_client.delete_message(QueueUrl=queue_url,ReceiptHandle=receipt_handle)
+        return response
 
     def send_message(queue, message):
         response = queue.send_message(MessageBody=message)

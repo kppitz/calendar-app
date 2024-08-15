@@ -1,4 +1,4 @@
-import sys, datetime as dt, time
+import sys, datetime as dt, json, logging
 sys.path.append('../../')
 from config.definitions.appointment_service import AppointmentService as appt
 from config.wrappers.sqs_wrapper import SqsWrapper as sqs
@@ -9,6 +9,11 @@ from config.wrappers.logs_wrapper import LogWrapper as log
 
 log_group_name = '/calendar/appointment-handler'
 log_stream_name = "appt-handler-execution/" + str(dt.datetime.now().timestamp())
+sqs_url = "https://sqs.us-east-1.amazonaws.com/381492094663/calendar-request-queue"
+
+logger = logging.getLogger()
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 def appt_handler(event, context):
     #log_group = log.create_log_group(log_group_name)
@@ -24,22 +29,17 @@ def appt_handler(event, context):
     operation = "listening"
 
     #log.add_log(log_group_name, log_stream_name, ("incoming appointment-handler event: " + event))
-    request_response = appt.process_request(event)
+    logger.info("incoming appointment-handler event: " + str(event))
+
+    message_request_body = json.loads(event['Records'][0]['body'])
+    message_request_dict = json.loads(message_request_body['Message'])
+    logger.info("appointment request body: " + str(message_request_dict))
+
+    request_response = appt.process_request(message_request_dict)
     status_response = appt.update_status(request_response, calendar_status_topic)
+    logger.info("appt update status response: " + str(status_response))
 
-    #log.add_log(log_group_name, log_stream_name, ("appt update status response: " + status_response))
+    delete_response = sqs.delete_message(sqs_url, event['Records'][0]['receiptHandle'])
+    logger.info("deleted message from queue: " + str(delete_response))
 
-    # #log.add_log(log_group_name, log_stream_name, "connected to calendar request queue")
-
-    # logger.info("connected to calendar request queue")
-    # print()
-
-    # while (operation != "exit"):
-    #     request_body = sqs.receive_messages(request_queue)
-
-    #     if(request_body):
-    #         #print(request_body)
-    #         #log.add_log(log_group_name, log_stream_name, ("received request: " + str(request_body)))
-    #         request_response = process_request(request_body)
-    #         status_response = update_status(request_response, calendar_status_topic)
-    #         operation = request_response['operation']
+    return request_response

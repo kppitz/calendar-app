@@ -1,4 +1,4 @@
-import sys, datetime as dt
+import sys, datetime as dt, logging, json
 sys.path.append('../../')
 from config.definitions.calendar_service import CalendarService as calendar
 from config.wrappers.sqs_wrapper import SqsWrapper as sqs
@@ -7,27 +7,26 @@ from config.wrappers.logs_wrapper import LogWrapper as log
 
 log_group_name = '/calendar/calendar-handler'
 log_stream_name = "calendar-handler-execution/" + str(dt.datetime.now().timestamp())
+sqs_url = "https://sqs.us-east-1.amazonaws.com/381492094663/calendar-status-queue"
+
+logger = logging.getLogger()
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 def calendar_handler(event, context):
     #log_group = log.create_log_group(log_group_name)
     #log_stream = log.create_log_stream(log_group_name, log_stream_name)
-    #log.add_log(log_group_name, log_stream_name, ("incoming calendar-handler event: "+ event))
 
-    calendar_status = calendar.process_status(event)
+    logger.info("incoming calendar-handler event: "+ str(event))
 
-    #log.add_log(log_group_name, log_stream_name, ("calendar status: "+calendar_status) )
-    # status_queue = sqs.get_queue("calendar-status-queue")
-    # status_response = "listening"
+    status_request_body = json.loads(event['Records'][0]['body'])
+    status_request_dict = json.loads(status_request_body['Message'])
+    logger.info("calendar status  body: " + str(status_request_dict))
 
-    # #log.add_log(log_group_name, log_stream_name, "connected to calendar status queue")
-    # logger.info("connected to calendar status queue")
-    # print()
+    calendar_status = calendar.process_status(status_request_dict)
+    logger.info(str(calendar_status))
+    
+    delete_response = sqs.delete_message(sqs_url, event['Records'][0]['receiptHandle'])
+    logger.info("deleted message from queue: " + str(delete_response))
 
-    # while (status_response != "exit"):
-    #     status_body = sqs.receive_messages(status_queue)
-
-    #     if (status_body):
-    #         #print(status_body)
-    #         #log.add_log(log_group_name, log_stream_name, ("received message: " + str(status_body)))
-    #         status_response = calendar.process_status(status_body)
-    #         #log.add_log(log_group_name, log_stream_name, status_response)
+    return calendar_status
